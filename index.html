@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="Al-Quran JSON Indonesia Kemenag">
+  <meta name="author" content="vici">
+  <title>Al-Quran Digital Indonesia</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #31304D;
+      --secondary-color: #484666;
+      --light-color: #F0ECE5;
+      --border-color: #B4B2C5;
+    }
+
+    @font-face {
+      font-family: arabicfont;
+      src: url("./../fonts/LPMQ.ttf");
+    }
+
+    body {
+      background-color: var(--light-color);
+    }
+
+    .navbar {
+      background-color: var(--primary-color) !important;
+      margin-bottom: 2rem;
+    }
+
+    .navbar-brand {
+      color: white !important;
+      font-weight: bold;
+    }
+
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto 2rem auto;
+    }
+
+    .search-container .form-control {
+      background-color: white;
+      border: 1px solid var(--border-color);
+    }
+
+    .search-container .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.25rem rgba(49, 48, 77, 0.25);
+    }
+
+    .surah-card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .surah-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(49, 48, 77, 0.15);
+    }
+
+    .surah-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .surah-number {
+      background-color: var(--primary-color);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 1rem;
+    }
+
+    .surah-title {
+      flex-grow: 1;
+    }
+
+    .surah-name {
+      margin: 0;
+      color: var(--primary-color);
+      font-weight: bold;
+    }
+
+    .surah-info {
+      color: #666;
+      font-size: 0.9rem;
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .arabic {
+      text-align: right;
+      font-family: arabicfont;
+      font-size: 24px;
+      line-height: 2;
+      margin: 1rem 0;
+      color: var(--primary-color);
+    }
+
+    .translation {
+      color: #666;
+      font-size: 16px;
+      margin: 1rem 0;
+      line-height: 1.6;
+    }
+
+    .aya-number {
+      background-color: var(--secondary-color) !important;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 50%;
+      margin-left: 10px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--secondary-color) !important;
+      border-color: var(--secondary-color) !important;
+    }
+
+    .badge {
+      background-color: var(--secondary-color);
+      color: white;
+      font-weight: normal;
+    }
+
+    #loadingview {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+    }
+
+    .search-highlight {
+      background-color: rgba(49, 48, 77, 0.2);
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    .detail-view .surah-card {
+      cursor: default;
+    }
+
+    .detail-view .surah-card:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .copyright {
+      text-align: center;
+      padding: 1rem;
+      margin-top: 2rem;
+      color: var(--primary-color);
+      font-size: 0.9rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    @media (max-width: 768px) {
+      .surah-info {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand" href="#">V Digital Qur'an</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="search-container">
+      <div class="input-group">
+        <input type="text" id="searchInput" class="form-control" placeholder="Cari surah atau ayat...">
+        <button class="btn btn-primary" type="button" onclick="handleSearch()">Cari</button>
+      </div>
+    </div>
+
+    <div id="loadingview" class="text-center"></div>
+    <div id="mainContent">
+      <div id="surahList" class="row"></div>
+      <div id="surah" class="detail-view"></div>
+    </div>
+
+    <footer class="copyright">
+      Created by Vici © 2024
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const baseurl = 'https://raw.githubusercontent.com/iqbalsyamhad/Al-Quran-JSON-Indonesia-Kemenag/master/';
+    const loadingView = document.getElementById("loadingview");
+    let currentSurah = null;
+    let allSurahs = [];
+
+    async function loadSurahList() {
+      try {
+        loadingView.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>';
+        const response = await fetch(baseurl + 'Daftar%20Surat.json');
+        const json = await response.json();
+        allSurahs = json.data;
+        displaySurahList(allSurahs);
+        loadingView.innerHTML = '';
+      } catch (err) {
+        alert('Error: ' + err);
+        loadingView.innerHTML = '';
+      }
+    }
+
+    function displaySurahList(surahs) {
+      const container = document.getElementById("surahList");
+      container.innerHTML = surahs.map(surah => `
+        <div class="col-md-6 col-lg-4">
+          <div class="surah-card" onclick="getSurat('${surah.id}', '${surah.surat_name.replace(/[^\w\s]/gi, '')}')">
+            <div class="surah-header">
+              <div class="surah-number">${surah.id}</div>
+              <div class="surah-title">
+                <h4 class="surah-name">${surah.surat_name}</h4>
+                <div class="surah-info">
+                  <span><i class="bi bi-book"></i> ${surah.count_ayat} Ayat</span>
+                  <span class="badge">${surah.type}</span>
+                </div>
+              </div>
+            </div>
+            <p class="arabic" style="margin-bottom: 0;">${surah.surat_text || ''}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function getSurat(id, title) {
+      loadingView.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>';
+      document.getElementById("surahList").style.display = 'none';
+      
+      const mainContainer = document.getElementById("surah");
+      mainContainer.innerHTML = '';
+      
+      try {
+        const response = await fetch(baseurl + 'Surat/' + id + '.json');
+        const data = await response.json();
+        currentSurah = data;
+        
+        mainContainer.innerHTML = `
+          <button class="btn btn-primary mb-4" onclick="showSurahList()">← Kembali ke Daftar Surah</button>
+          <h2 class="text-center mb-4">Surat ${title}</h2>
+          ${data.data.map(aya => `
+            <div class="surah-card">
+              <p class="arabic">${aya.aya_text}<span class="aya-number">${aya.aya_number}</span></p>
+              <p class="translation">${aya.translation_aya_text}</p>
+            </div>
+          `).join('')}
+        `;
+        
+        loadingView.innerHTML = '';
+      } catch (err) {
+        alert('Error: ' + err);
+        loadingView.innerHTML = '';
+      }
+    }
+
+    function showSurahList() {
+      document.getElementById("surahList").style.display = 'flex';
+      document.getElementById("surah").innerHTML = '';
+      currentSurah = null;
+    }
+
+    function handleSearch() {
+      const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+      
+      if (!searchTerm) {
+        if (currentSurah) {
+          getSurat(currentSurah.data[0].surat_id, currentSurah.data[0].surat_name);
+        } else {
+          displaySurahList(allSurahs);
+        }
+        return;
+      }
+
+      if (currentSurah) {
+        // Search within current surah
+        const mainContainer = document.getElementById("surah");
+        const filteredAyas = currentSurah.data.filter(aya => 
+          aya.translation_aya_text.toLowerCase().includes(searchTerm) ||
+          aya.aya_text.includes(searchTerm)
+        );
+
+        mainContainer.innerHTML = `
+          <button class="btn btn-primary mb-4" onclick="showSurahList()">← Kembali ke Daftar Surah</button>
+          <h2 class="text-center mb-4">Hasil Pencarian</h2>
+          ${filteredAyas.length ? 
+            filteredAyas.map(aya => `
+              <div class="surah-card">
+                <p class="arabic">${aya.aya_text}<span class="aya-number">${aya.aya_number}</span></p>
+                <p class="translation">${highlightText(aya.translation_aya_text, searchTerm)}</p>
+              </div>
+            `).join('') :
+            '<div class="alert alert-info">Tidak ditemukan hasil pencarian</div>'
+          }
+        `;
+      } else {
+        // Search in surah list
+        const filteredSurahs = allSurahs.filter(surah =>
+          surah.surat_name.toLowerCase().includes(searchTerm) ||
+          surah.id.toString().includes(searchTerm)
+        );
+        displaySurahList(filteredSurahs);
+      }
+    }
+
+    function highlightText(text, searchTerm) {
+      const regex = new RegExp(`(${searchTerm})`, 'gi');
+      return text.replace(regex, '<span class="search-highlight">$1</span>');
+    }
+
+    // Initialize
+    loadSurahList();
+
+    // Add search on enter key
+    document.getElementById("searchInput").addEventListener("keyup", function(event) {
+      if (event.key === "Enter") {
+        handleSearch();
+      }
+    });
+  </script>
+</body>
+</html>
